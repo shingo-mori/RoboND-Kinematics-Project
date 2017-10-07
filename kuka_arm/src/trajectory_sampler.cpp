@@ -324,6 +324,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
                              rviz_visual_tools::WHITE, rviz_visual_tools::XXXXLARGE);
     visual_tools.trigger();
     CloseGripper();
+    ros::Duration(2.0).sleep();
     visual_tools.prompt("next step");
 
     /*
@@ -469,7 +470,7 @@ TrajectorySampler::TrajectorySampler(ros::NodeHandle nh)
                              rviz_visual_tools::WHITE, rviz_visual_tools::XXXXLARGE);
     visual_tools.trigger();
     OpenGripper();
-    ros::Duration(2.0).sleep();
+    ros::Duration(3.0).sleep();
 
     // Update cycle cycle_counter
     cycle_counter++;

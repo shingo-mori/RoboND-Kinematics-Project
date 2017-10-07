@@ -78,25 +78,25 @@ def test_code(test_case):
     q1, q2, q3, q4, q5, q6, q7 = symbols("q1:8")
 
 	# Create Modified DH parameters
-    dh_params = { alpha0:      0, a0:       0,   d1: 0.75,  q1:        q1,
-                  alpha1: - pi/2, a1:    0.35,   d2: 0,     q2: q2 - pi/2,
-                  alpha2:      0, a2:    1.25,   d3: 0,     q3:        q3,
-                  alpha3: - pi/2, a3: - 0.054,   d4: 1.5,   q4:        q4,
-                  alpha4:   pi/2, a4:       0,   d5: 0,     q5:        q5,
-                  alpha5:   pi/2, a5:       0,   d6: 0,     q6:        q6,
-                  alpha6:      0, a6:       0,   d7: 0.303, q7:         0 }
+    dh = {
+        alpha0:      0, a0:       0,   d1: 0.75,  q1:        q1,
+        alpha1: - pi/2, a1:    0.35,   d2: 0,     q2: q2 - pi/2,
+        alpha2:      0, a2:    1.25,   d3: 0,     q3:        q3,
+        alpha3: - pi/2, a3: - 0.054,   d4: 1.5,   q4:        q4,
+        alpha4:   pi/2, a4:       0,   d5: 0,     q5:        q5,
+        alpha5: - pi/2, a5:       0,   d6: 0,     q6:        q6,
+        alpha6:      0, a6:       0,   d7: 0.303, q7:         0 }
 
     # Create individual transformation matrices
-    T0_1 = tf_matrix(alpha0, a0, d1, q1).subs(dh_params)
-    T1_2 = tf_matrix(alpha1, a1, d2, q2).subs(dh_params)
-    T2_3 = tf_matrix(alpha2, a2, d3, q3).subs(dh_params)
-    T3_4 = tf_matrix(alpha3, a3, d4, q4).subs(dh_params)
-    T4_5 = tf_matrix(alpha4, a4, d5, q5).subs(dh_params)
-    T5_6 = tf_matrix(alpha5, a5, d6, q6).subs(dh_params)
-    T6_E = tf_matrix(alpha6, a6, d7, q7).subs(dh_params)
-
-    T0_E = T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_E
-    R0_3 = T0_1[0:3, 0:3] * T1_2[0:3, 0:3] * T2_3[0:3, 0:3]
+    T0_1 = tf_matrix(alpha0, a0, d1, q1).subs(dh)
+    T1_2 = tf_matrix(alpha1, a1, d2, q2).subs(dh)
+    T2_3 = tf_matrix(alpha2, a2, d3, q3).subs(dh)
+    T3_4 = tf_matrix(alpha3, a3, d4, q4).subs(dh)
+    T4_5 = tf_matrix(alpha4, a4, d5, q5).subs(dh)
+    T5_6 = tf_matrix(alpha5, a5, d6, q6).subs(dh)
+    T6_E = tf_matrix(alpha6, a6, d7, q7).subs(dh)
+    T0_3 = simplify(T0_1 * T1_2 * T2_3)
+    T0_E = simplify(T0_1 * T1_2 * T2_3 * T3_4 * T4_5 * T5_6 * T6_E)
 
     # Extract rotation matrices from the transformation matrices
     r, p, y = symbols("r p y")
@@ -109,9 +109,13 @@ def test_code(test_case):
     R_z = Matrix([[ cos(y), -sin(y), 0],
                   [ sin(y),  cos(y), 0],
                   [      0,       0, 1]])
+    R0_3 = T0_3[0:3, 0:3]
     R_crr = simplify(R_z.subs({y: pi}) * R_y.subs({p: -pi / 2}))
+    R0_E = R_z * R_y * R_x * R_crr
 
-    R_EE = R_z * R_y * R_x * R_crr
+    # Calulate link lengths
+    L2_3 = dh[a2]
+    L3_5 = sqrt(dh[d4]**2 + dh[a3]**2)
 
     # Solve Inverse Kinematics
 
@@ -124,38 +128,43 @@ def test_code(test_case):
 
     (roll, pitch, yaw) = tf.transformations.euler_from_quaternion(
         [req.poses[x].orientation.x, req.poses[x].orientation.y,
-         req.poses[x].orientation.z, req.poses[x].orientation.w])
+            req.poses[x].orientation.z, req.poses[x].orientation.w])
 
+    ### Your IK code here
     # Compensate for rotation discrepancy between DH parameters and Gazebo
-    pos0_EE = Matrix([[px], [py], [pz]])
-    rot0_EE = R_EE.subs({r: roll, p: pitch, y: yaw})
-    WC = pos0_EE - 0.303 * rot0_EE[:, 2]
+    p0E_0 = Matrix([[px], [py], [pz]])
+    rot0_E = R0_E.subs({r: roll, p: pitch, y: yaw})
+    p0W_0 = p0E_0 - dh[d7] * rot0_E[:,2]
 
     # Calculate joint angles using Geometric IK method
-    theta1 = atan2(WC[1], WC[0])
+
+    theta1 = atan2(p0W_0[1], p0W_0[0])
 
     # SSS triangle for theta2 and theta3
-    side_a = 1.501
-    side_b = sqrt(pow((sqrt(WC[0] * WC[0] + WC[1] * WC[1]) - 0.35), 2)
-                  + pow((WC[2] - 0.75), 2))
-    side_c = 1.25
+    p02_0 = R_z.subs({y: theta1}) * Matrix([[dh[a1]], [0], [dh[d1]]])
+    p2w_0 = p0W_0 - p02_0
+    side_a = L3_5
+    side_b = p2w_0.norm()
+    side_c = L2_3
 
-    angle_a = acos((side_b * side_b + side_c * side_c - side_a * side_a)
+    alpha = acos((side_b * side_b + side_c * side_c - side_a * side_a)
                    / (2 * side_b * side_c))
-    angle_b = acos((side_a * side_a + side_c * side_c - side_b * side_b)
+    beta = acos((side_a * side_a + side_c * side_c - side_b * side_b)
                    / (2 * side_a * side_c))
+    rad_x2_w = atan2(p0W_0[2] - dh[d1],
+                     sqrt(p0W_0[0] * p0W_0[0] + p0W_0[1] * p0W_0[1]) - dh[a1])
+    rad_x3_w = atan2(- dh[a3], dh[d4])
 
-    theta2 = pi / 2 - angle_a - atan2(WC[2] - 0.75,
-                                      sqrt(WC[0] * WC[0] + WC[1] * WC[1]) - 0.35)
-    theta3 = pi / 2 - (angle_b + 0.036)
+    theta2 = pi / 2 - alpha - rad_x2_w
+    theta3 = pi / 2 - beta - rad_x3_w
 
     rot0_3 = R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3})
 
-    rot3_6 = rot0_3.inv("LU") * rot0_EE
-    theta4 = atan2(rot3_6[2, 2], -rot3_6[0, 2])
-    theta5 = atan2(sqrt(rot3_6[0, 2] * rot3_6[0, 2] + rot3_6[2, 2] * rot3_6[2, 2]),
-                   rot3_6[1, 2])
-    theta6 = atan2(-rot3_6[1, 1], rot3_6[1, 0])
+    rot3_6 = rot0_3.inv("LU") * rot0_E
+    theta4 = atan2(rot3_6[2,2], -rot3_6[0,2])
+    theta5 = atan2(sqrt(rot3_6[0,2] * rot3_6[0,2] + rot3_6[2,2] * rot3_6[2,2]),
+                   rot3_6[1,2])
+    theta6 = atan2(-rot3_6[1,1], rot3_6[1,0])
 
     ## 
     ########################################################################################
@@ -172,7 +181,7 @@ def test_code(test_case):
     ########################################################################################
 
     ## For error analysis please set the following variables of your WC location and EE location in the format of [x,y,z]
-    your_wc = [WC[0], WC[1], WC[2]] # <--- Load your calculated WC values in this array
+    your_wc = [p0W_0[0], p0W_0[1], p0W_0[2]] # <--- Load your calculated WC values in this array
     your_ee = [FK[0,3], FK[1,3], FK[2,3]] # <--- Load your calculated end effector value from your forward kinematics
     ########################################################################################
 
