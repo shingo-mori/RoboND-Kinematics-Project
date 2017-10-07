@@ -14,16 +14,6 @@
 5. Perform Kinematic Analysis for the robot following the [project rubric](https://review.udacity.com/#!/rubrics/972/view).
 6. Fill in the `IK_server.py` with your Inverse Kinematics code. 
 
-
-[//]: # (Image References)
-
-[link_frame]: ./misc_images/link_frame.png
-[joint_offset]: ./misc_images/joint_offset.png
-[transform]: ./misc_images/transform.png
-[total_transform]: ./misc_images/total_transform.png
-[theta1]: ./misc_images/theta1.png
-[theta2_3]: ./misc_images/theta2_3.png
-
 ## [Rubric](https://review.udacity.com/#!/rubrics/972/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
@@ -39,11 +29,11 @@ You're reading it!
 
 Link frames assigned in Kuka KR210 are shown in the image below.
 
-![alt text][link_frame]
+<img src="./misc_images/link_frame.png" width="400">
 
 The image below shows the position offset of each joint expressed in the kr210.urdf.xacro file.
 
-![alt text][joint_offset]
+<img src="./misc_images/joint_offset.png" width="400">
 
 From the above conditions, DH parameters for Kuka KR210 are derived as follows.
 
@@ -67,9 +57,9 @@ Link     | alpha(i-1)  | a(i-1)  | d(i)  | theta(i)
 
 The homogeneous transform from frame(i-1) to frame(i) is constructed as follows.
 
-![alt text][transform]
+<img src="./misc_images/transform.png" width="400">
 
-![alt text][total_transform]
+<img src="./misc_images/total_transform.png" width="400">
 
 - Rx/Rz : Rotation about X/Z axis
 - Dx/Dz : Transformation along X/Z axis
@@ -164,7 +154,7 @@ theta1 = atan2(p0W_0[1], p0W_0[0])
 
 The diagram below shows how theta 2 and theta 3 are  calculated.
 
-![alt text][theta2_3]
+<img src="./misc_images/theta2_3.png" width="400">
 
 From the diagram above, theta 2 and theta 3 can be calculated with the following formula.
 
