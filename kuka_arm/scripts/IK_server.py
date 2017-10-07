@@ -137,14 +137,13 @@ def handle_calculate_IK(req):
                      / (2 * side_b * side_c))
         beta = acos((side_a * side_a + side_c * side_c - side_b * side_b)
                     / (2 * side_a * side_c))
-        # Angle between X2 axis and O2-WC segment
-        rad_x2_w = atan2(p0W_0[2] - dh[d1],
+        # Calculate delta and epsilon
+        delta = atan2(p0W_0[2] - dh[d1],
                          sqrt(p0W_0[0] * p0W_0[0] + p0W_0[1] * p0W_0[1]) - dh[a1])
-        # Angle between X3 axis and O3-WC segment
-        rad_x3_w = atan2(- dh[a3], dh[d4])
+        epsilon = atan2(- dh[a3], dh[d4])
 
-        theta2 = pi / 2 - alpha - rad_x2_w
-        theta3 = pi / 2 - beta - rad_x3_w
+        theta2 = pi / 2 - alpha - delta
+        theta3 = pi / 2 - beta - epsilon
 
         # Rotation between frame 3 and 6
         rot0_3 = R0_3.evalf(subs={q1: theta1, q2: theta2, q3: theta3})
